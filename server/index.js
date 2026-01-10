@@ -66,7 +66,7 @@ app.get('/.well-known/apple-developer-merchantid-domain-association', (req, res)
 });
 
 app.use(express.json());
-app.use(express.static('public', { dotfiles: 'allow' }));
+app.use(express.static(path.join(__dirname, '../public'), { dotfiles: 'allow' }));
 
 app.use(helmet({
   contentSecurityPolicy: {

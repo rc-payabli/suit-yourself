@@ -59,7 +59,7 @@ Expected: $599.00  |  Actually Charged: $1.00
 
 ```bash
 # Clone the repository
-git clone https://github.com/PayabliSE/suit-yourself.git
+git clone https://github.com/rc-payabli/suit-yourself.git
 cd suit-yourself
 
 # Install dependencies

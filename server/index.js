@@ -5,7 +5,7 @@
  * integration with Payabli ExpressCheckout. Built as a reference implementation
  * for e-commerce ISVs looking to integrate digital wallet payments securely.
  * 
- * GitHub: https://github.com/PayabliSE/suit-yourself
+ * GitHub: https://github.com/rc-payabli/suit-yourself
  */
 
 const express = require('express');
@@ -14,6 +14,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const axios = require('axios');
+const path = require('path');
 require('dotenv').config();
 
 const app = express();
@@ -44,12 +45,14 @@ const CONFIG = {
   }
 };
 
-// Validate environment
-const requiredEnvVars = ['PAYABLI_PUBLIC_TOKEN', 'PAYABLI_API_KEY', 'PAYABLI_ENTRY_POINT', 'CHECKOUT_HASH_SECRET'];
-for (const envVar of requiredEnvVars) {
-  if (!process.env[envVar]) {
-    console.error(`Missing required environment variable: ${envVar}`);
-    process.exit(1);
+// Validate environment - skip in production/Vercel where env vars are set differently
+if (process.env.NODE_ENV !== 'production') {
+  const requiredEnvVars = ['PAYABLI_PUBLIC_TOKEN', 'PAYABLI_API_KEY', 'PAYABLI_ENTRY_POINT', 'CHECKOUT_HASH_SECRET'];
+  for (const envVar of requiredEnvVars) {
+    if (!process.env[envVar]) {
+      console.error(`Missing required environment variable: ${envVar}`);
+      process.exit(1);
+    }
   }
 }
 
@@ -57,8 +60,13 @@ for (const envVar of requiredEnvVars) {
 // MIDDLEWARE
 // =============================================================================
 
+// Apple Pay Domain Verification - must be before other middleware
+app.get('/.well-known/apple-developer-merchantid-domain-association', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/.well-known/apple-developer-merchantid-domain-association'));
+});
+
 app.use(express.json());
-app.use(express.static('public'));
+app.use(express.static('public', { dotfiles: 'allow' }));
 
 app.use(helmet({
   contentSecurityPolicy: {
@@ -591,7 +599,7 @@ app.listen(CONFIG.server.port, () => {
 ╠═══════════════════════════════════════════════════════════════╣
 ║  Port: ${CONFIG.server.port}                                                   ║
 ║  Environment: ${(process.env.PAYABLI_ENV || 'sandbox').padEnd(44)}║
-║  GitHub: github.com/PayabliSE/suit-yourself                   ║
+║  GitHub: github.com/rc-payabli/suit-yourself                  ║
 ╚═══════════════════════════════════════════════════════════════╝
 
 Open http://localhost:${CONFIG.server.port} to start shopping

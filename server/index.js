@@ -19,6 +19,9 @@ require('dotenv').config();
 
 const app = express();
 
+// Trust proxy - required for Vercel/cloud deployments
+app.set('trust proxy', 1);
+
 // =============================================================================
 // CONFIGURATION
 // =============================================================================

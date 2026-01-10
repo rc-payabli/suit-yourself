@@ -1,28 +1,18 @@
 /**
  * SUIT YOURSELF - Store Logic
- * Handles cart management, API calls, and UI interactions
+ * Handles cart management with localStorage and product API calls
  */
 
 const Store = {
-  cartId: null,
   cart: null,
+  products: null,
   
   // =================================================================
   // INITIALIZATION
   // =================================================================
   
   init() {
-    this.cartId = this.getCartId();
     this.loadCart();
-  },
-  
-  getCartId() {
-    let cartId = localStorage.getItem('suityourself_cart_id');
-    if (!cartId) {
-      cartId = 'cart_' + Math.random().toString(36).substring(2, 15);
-      localStorage.setItem('suityourself_cart_id', cartId);
-    }
-    return cartId;
   },
   
   // =================================================================
@@ -32,7 +22,8 @@ const Store = {
   async getProducts(category = '') {
     const url = category ? `/api/products?category=${category}` : '/api/products';
     const response = await fetch(url);
-    return response.json();
+    this.products = await response.json();
+    return this.products;
   },
   
   async getProduct(id) {
@@ -41,36 +32,81 @@ const Store = {
   },
   
   // =================================================================
-  // CART API
+  // CART - CLIENT-SIDE STORAGE
   // =================================================================
   
-  async loadCart() {
+  loadCart() {
     try {
-      const response = await fetch(`/api/cart/${this.cartId}`);
-      this.cart = await response.json();
-      this.updateCartUI();
+      const saved = localStorage.getItem('suityourself_cart');
+      if (saved) {
+        this.cart = JSON.parse(saved);
+      } else {
+        this.cart = { items: [], subtotal: 0 };
+      }
     } catch (error) {
       console.error('Failed to load cart:', error);
       this.cart = { items: [], subtotal: 0 };
     }
+    this.updateCartUI();
   },
   
-  async getCart() {
+  saveCart() {
+    try {
+      localStorage.setItem('suityourself_cart', JSON.stringify(this.cart));
+    } catch (error) {
+      console.error('Failed to save cart:', error);
+    }
+  },
+  
+  getCart() {
     if (!this.cart) {
-      await this.loadCart();
+      this.loadCart();
     }
     return this.cart;
   },
   
+  getCartId() {
+    // Generate a unique ID for the order
+    let cartId = localStorage.getItem('suityourself_cart_id');
+    if (!cartId) {
+      cartId = 'cart_' + Math.random().toString(36).substring(2, 15);
+      localStorage.setItem('suityourself_cart_id', cartId);
+    }
+    return cartId;
+  },
+  
   async addToCart(productId, size, quantity = 1) {
     try {
-      const response = await fetch(`/api/cart/${this.cartId}/add`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ productId, size, quantity })
-      });
-      this.cart = await response.json();
+      // Get product details from API
+      const product = await this.getProduct(productId);
+      if (!product) throw new Error('Product not found');
+      
+      // Check if item already in cart
+      const existingIndex = this.cart.items.findIndex(
+        item => item.productId === productId && item.size === size
+      );
+      
+      if (existingIndex >= 0) {
+        // Update quantity
+        this.cart.items[existingIndex].quantity += quantity;
+      } else {
+        // Add new item
+        this.cart.items.push({
+          id: Math.random().toString(16).substring(2, 18),
+          productId: product.id,
+          name: product.name,
+          price: product.price,
+          size: size,
+          quantity: quantity,
+          image: product.images[0]
+        });
+      }
+      
+      // Recalculate subtotal
+      this.recalculateSubtotal();
+      this.saveCart();
       this.updateCartUI();
+      
       return this.cart;
     } catch (error) {
       console.error('Failed to add to cart:', error);
@@ -78,14 +114,11 @@ const Store = {
     }
   },
   
-  async removeFromCart(itemId) {
+  removeFromCart(itemId) {
     try {
-      const response = await fetch(`/api/cart/${this.cartId}/remove`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ itemId })
-      });
-      this.cart = await response.json();
+      this.cart.items = this.cart.items.filter(item => item.id !== itemId);
+      this.recalculateSubtotal();
+      this.saveCart();
       this.updateCartUI();
       return this.cart;
     } catch (error) {
@@ -94,15 +127,18 @@ const Store = {
     }
   },
   
-  async updateCartItem(itemId, quantity) {
+  updateCartItem(itemId, quantity) {
     try {
-      const response = await fetch(`/api/cart/${this.cartId}/update`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ itemId, quantity })
-      });
-      this.cart = await response.json();
-      this.updateCartUI();
+      const item = this.cart.items.find(item => item.id === itemId);
+      if (item) {
+        if (quantity <= 0) {
+          return this.removeFromCart(itemId);
+        }
+        item.quantity = quantity;
+        this.recalculateSubtotal();
+        this.saveCart();
+        this.updateCartUI();
+      }
       return this.cart;
     } catch (error) {
       console.error('Failed to update cart:', error);
@@ -110,10 +146,18 @@ const Store = {
     }
   },
   
+  recalculateSubtotal() {
+    this.cart.subtotal = this.cart.items.reduce(
+      (sum, item) => sum + (item.price * item.quantity), 
+      0
+    );
+  },
+  
   clearCart() {
+    this.cart = { items: [], subtotal: 0 };
+    localStorage.removeItem('suityourself_cart');
     localStorage.removeItem('suityourself_cart_id');
-    this.cartId = null;
-    this.cart = null;
+    this.updateCartUI();
   },
   
   // =================================================================

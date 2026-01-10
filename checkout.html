@@ -220,7 +220,7 @@
     // =================================================================
     
     async function initCheckout() {
-      const cart = await Store.getCart();
+      const cart = Store.getCart();
       
       if (!cart || cart.items.length === 0) {
         window.location.href = '/products.html';
@@ -268,14 +268,17 @@
       showStatus('loading', 'Preparing checkout...');
       
       try {
-        // Create order
-        const cartId = Store.getCartId();
+        // Get cart from localStorage
+        const cart = Store.getCart();
+        
+        // Create order with cart items
         const orderResponse = await fetch('/api/orders/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            cartId,
-            customer: { email, firstName, lastName }
+            cartId: Store.getCartId(),
+            customer: { email, firstName, lastName },
+            items: cart.items
           })
         });
         

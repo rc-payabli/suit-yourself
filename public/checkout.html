@@ -110,10 +110,6 @@
           <span>Shipping</span>
           <span>Free</span>
         </div>
-        <div class="summary-row">
-          <span>Service Fee</span>
-          <span id="summary-fee">$0.00</span>
-        </div>
         <div class="summary-row summary-total">
           <span>Total</span>
           <span id="summary-total">$0.00</span>
@@ -232,8 +228,7 @@
     
     function renderSummary(cart) {
       const itemsEl = document.getElementById('summary-items');
-      const serviceFee = Math.round(cart.subtotal * 0.03 * 100) / 100;
-      const total = cart.subtotal + serviceFee;
+      const total = cart.subtotal;
       
       itemsEl.innerHTML = cart.items.map(item => `
         <div class="summary-item">
@@ -247,7 +242,6 @@
       `).join('');
       
       document.getElementById('summary-subtotal').textContent = `$${cart.subtotal.toFixed(2)}`;
-      document.getElementById('summary-fee').textContent = `$${serviceFee.toFixed(2)}`;
       document.getElementById('summary-total').textContent = `$${total.toFixed(2)}`;
     }
     
@@ -294,11 +288,10 @@
         // Store verification data and amounts
         verificationData = config.verification;
         orderTotal = config.order.total;
-        orderServiceFee = config.order.serviceFee;
+        orderServiceFee = 0;
         
         // Update summary with server amounts
         document.getElementById('summary-subtotal').textContent = `$${config.order.subtotal.toFixed(2)}`;
-        document.getElementById('summary-fee').textContent = `$${config.order.serviceFee.toFixed(2)}`;
         document.getElementById('summary-total').textContent = `$${config.order.total.toFixed(2)}`;
         document.getElementById('btn-pay-amount').textContent = `$${config.order.total.toFixed(2)}`;
         
@@ -615,11 +608,10 @@
       manualPaymentComponent.payabliExec('pay', {
         paymentDetails: {
           totalAmount: orderTotal,
-          serviceFee: orderServiceFee,
           categories: [
             {
               label: 'Order ' + orderId,
-              amount: orderTotal - orderServiceFee,
+              amount: orderTotal,
               qty: 1
             }
           ]

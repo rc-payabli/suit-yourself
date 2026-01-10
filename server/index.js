@@ -266,6 +266,8 @@ async function reverseTransaction(referenceId, amount = 0) {
 async function verifyPayabliTransaction(referenceId, expectedAmount, expectedFee) {
   const txnDetails = await getTransactionDetails(referenceId);
   
+  console.log('[DEBUG] Payabli txn details:', JSON.stringify(txnDetails.responseData || {}, null, 2));
+  
   if (!txnDetails.isSuccess) {
     return { verified: false, reason: 'Transaction not found' };
   }
@@ -426,15 +428,14 @@ app.post('/api/orders/create', (req, res) => {
   }
   
   const orderId = `ORD-${generateId()}`;
-  const serviceFee = Math.round(subtotal * 0.03 * 100) / 100; // 3% service fee
   
   const order = {
     id: orderId,
     status: 'pending_payment',
     items: cartItems,
     subtotal: subtotal,
-    serviceFee: serviceFee,
-    total: Math.round((subtotal + serviceFee) * 100) / 100,
+    serviceFee: 0,
+    total: subtotal,
     customer: customer || {},
     createdAt: new Date()
   };
@@ -549,6 +550,12 @@ app.post('/api/checkout/confirm', async (req, res) => {
     );
     
     if (!payabliVerification.verified) {
+      console.log('[DEBUG] Amount mismatch:', JSON.stringify({
+        expected: payabliVerification.expected,
+        actual: payabliVerification.actual,
+        amountMatch: payabliVerification.amountMatch,
+        feeMatch: payabliVerification.feeMatch
+      }));
       logSecurityEvent('CHECKOUT_AMOUNT_MANIPULATION', {
         orderId,
         referenceId,

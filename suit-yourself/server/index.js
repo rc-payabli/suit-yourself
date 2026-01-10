@@ -406,23 +406,35 @@ app.post('/api/cart/:cartId/update', (req, res) => {
 // =============================================================================
 
 app.post('/api/orders/create', (req, res) => {
-  const { cartId, customer } = req.body;
-  const cart = carts.get(cartId);
+  const { cartId, customer, items } = req.body;
   
-  if (!cart || cart.items.length === 0) {
-    return res.status(400).json({ error: 'Cart is empty' });
+  // Accept items directly from client (localStorage-based cart)
+  let cartItems = items;
+  let subtotal = 0;
+  
+  if (!cartItems || cartItems.length === 0) {
+    // Fallback to server-side cart (for backwards compatibility)
+    const cart = carts.get(cartId);
+    if (!cart || cart.items.length === 0) {
+      return res.status(400).json({ error: 'Cart is empty' });
+    }
+    cartItems = cart.items;
+    subtotal = cart.subtotal;
+  } else {
+    // Calculate subtotal from provided items
+    subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   }
   
   const orderId = `ORD-${generateId()}`;
-  const serviceFee = Math.round(cart.subtotal * 0.03 * 100) / 100; // 3% service fee
+  const serviceFee = Math.round(subtotal * 0.03 * 100) / 100; // 3% service fee
   
   const order = {
     id: orderId,
     status: 'pending_payment',
-    items: cart.items,
-    subtotal: cart.subtotal,
+    items: cartItems,
+    subtotal: subtotal,
     serviceFee: serviceFee,
-    total: Math.round((cart.subtotal + serviceFee) * 100) / 100,
+    total: Math.round((subtotal + serviceFee) * 100) / 100,
     customer: customer || {},
     createdAt: new Date()
   };

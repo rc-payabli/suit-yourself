@@ -356,8 +356,11 @@
           billingEmail: customer.email
         },
         
+        // ↓↓↓ DEBUG CALLBACKS FOR EXPRESSCHECKOUT ↓↓↓
         functionCallBackReady: (data) => {
-          console.log('ExpressCheckout ready:', data);
+          console.log('READY:', data);
+          console.log('  - Apple Pay available:', data.applePay);
+          console.log('  - Google Pay available:', data.googlePay);
           
           // Show express checkout section if any wallet is available
           if (data.applePay || data.googlePay) {
@@ -370,19 +373,67 @@
         },
         
         functionCallBackSuccess: async (data) => {
-          console.log('ExpressCheckout success:', data);
+          console.log('SUCCESS:', data);
+          console.log('  - Full response data:', JSON.stringify(data, null, 2));
+          console.log('  - Payment Method:', data.paymentMethod);
+          console.log('  - Reference ID:', data.data?.responseData?.referenceId);
+          console.log('  - Result Text:', data.data?.responseData?.resultText);
+          console.log('  - Customer ID:', data.data?.responseData?.customerId);
+          
+          // Get the email we passed IN to the component
+          const inputBillingEmail = customer.email;
+          // Get the emails returned FROM the wallet
+          const walletShippingEmail = data.data?.responseData?.shippingContact?.emailAddress;
+          const walletBillingEmail = data.data?.responseData?.billingContact?.emailAddress;
+          
+          console.log('  ========================================');
+          console.log('  🔍 EMAIL COMPARISON TEST');
+          console.log('  ========================================');
+          console.log('  📤 EMAIL WE PASSED IN (billingEmail):', inputBillingEmail);
+          console.log('  📥 EMAIL FROM WALLET (shippingContact):', walletShippingEmail);
+          console.log('  📥 EMAIL FROM WALLET (billingContact):', walletBillingEmail);
+          console.log('  ----------------------------------------');
+          if (walletShippingEmail && inputBillingEmail !== walletShippingEmail) {
+            console.log('  ✅ DIFFERENT! shippingContact.emailAddress is the WALLET HOLDER email');
+          } else if (walletShippingEmail && inputBillingEmail === walletShippingEmail) {
+            console.log('  ⚠️  SAME - Could be coincidence or echoed back. Test with different emails to confirm.');
+          } else {
+            console.log('  ❌ No shippingContact.emailAddress returned - check requiredShippingContactFields config');
+          }
+          console.log('  ========================================');
+          
+          console.log('  --- FULL SHIPPING CONTACT ---');
+          console.log('  - Shipping Contact:', data.data?.responseData?.shippingContact);
+          console.log('  --- FULL BILLING CONTACT ---');
+          console.log('  - Billing Contact:', data.data?.responseData?.billingContact);
+          
+          // DEBUG: Alert to pause so you can view console logs before redirect
+          // Remove this alert after testing!
+          alert('Check console for email comparison logs. Click OK to continue to confirmation.');
+          
           await confirmPayment(data.data.responseData.referenceId, data.paymentMethod);
         },
         
         functionCallBackError: (data) => {
-          console.error('ExpressCheckout error:', data);
+          console.log('ERROR:', data);
+          console.log('  - Full error data:', JSON.stringify(data, null, 2));
+          console.log('  - Payment Method:', data.paymentMethod);
+          console.log('  - Error Response Code:', data.error?.responseCode);
+          console.log('  - Error Response Text:', data.error?.responseText);
+          console.log('  - Error Explanation:', data.error?.responseData?.explanation);
+          console.log('  - Error Todo Action:', data.error?.responseData?.todoAction);
           showStatus('error', 'Payment failed. Please try again.');
         },
         
-        functionCallBackCancel: () => {
+        functionCallBackCancel: (data) => {
+          console.log('CANCELLED:', data);
+          console.log('  - Full cancel data:', JSON.stringify(data, null, 2));
+          console.log('  - Payment Method:', data.paymentMethod);
+          console.log('  - Is Trusted:', data.data?.isTrusted);
           showStatus('info', 'Payment cancelled. You can try again when ready.');
           setTimeout(hideStatus, 3000);
         }
+        // ↑↑↑ END DEBUG CALLBACKS ↑↑↑
       };
       
       expressCheckoutComponent = new PayabliComponent(expressConfig);

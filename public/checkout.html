@@ -342,19 +342,25 @@
       initializeManualPayment(payabliConfig, { email, firstName, lastName });
     }
     
-    function initializeExpressCheckout(config, customer) {
-      const expressConfig = {
-        type: 'expressCheckout',
-        rootContainer: 'express-checkout-container',
-        token: config.token,
-        entryPoint: config.entryPoint,
-        expressCheckout: config.expressCheckout,
-        customerData: {
-          customerNumber: orderId,
-          firstName: customer.firstName,
-          lastName: customer.lastName,
-          billingEmail: customer.email
-        },
+ function initializeExpressCheckout(config, customer) {
+  // DEBUG BLOCK
+  console.log('EXPRESS CHECKOUT CONFIG DEBUG:');
+  console.log('  config.expressCheckout:', config.expressCheckout);
+  console.log('  requiredShippingContactFields:', config.expressCheckout?.requiredShippingContactFields);
+  
+  const expressConfig = {
+    type: 'expressCheckout',
+    rootContainer: 'express-checkout-container',
+    token: config.token,
+    entryPoint: config.entryPoint,
+    expressCheckout: config.expressCheckout,
+    customerData: {
+      customerNumber: orderId,
+      firstName: customer.firstName,
+      lastName: customer.lastName,
+      billingEmail: customer.email
+    },
+    // DEBUGS
         
         // ↓↓↓ DEBUG CALLBACKS FOR EXPRESSCHECKOUT ↓↓↓
         functionCallBackReady: (data) => {

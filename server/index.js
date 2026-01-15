@@ -472,6 +472,7 @@ app.get('/api/checkout/config/:orderId', (req, res) => {
       currency: 'USD',
       supportedNetworks: ["visa", "masterCard", "amex", "discover"],
       columns: 1,
+      requiredShippingContactFields: true,
       applePay: { enabled: true, buttonStyle: "black", buttonType: "buy", language: "en-US" },
       googlePay: { enabled: true, buttonStyle: "black", buttonType: "buy", language: "en" },
       appearance: { buttonHeight: 54, buttonBorderRadius: 0, padding: { x: 0, y: 0 } }
